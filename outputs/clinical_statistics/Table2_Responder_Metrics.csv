@@ -1,0 +1,10 @@
+﻿Features,Responder-OFF(N=144),Non-responder-OFF(N=93),p Responder vs. Non-responder(OFF),Responder-ON(N=144),Non-responder-ON(N=93),p Responder vs. Non-responder(ON)
+Age(years),59.74 ± 10.98,61.85 ± 10.15,0.144,-,-,-
+Gender(M/F),70/74,61/32,0.011,-,-,-
+Years of Education(years),10.67 ± 6.48,11.08 ± 4.83,0.162,-,-,-
+Course of Disease(years),5.48 ± 4.30,5.32 ± 5.55,0.275,-,-,-
+LEDD(mg),664.79 ± 357.73,602.98 ± 386.86,0.130,-,-,-
+H-Y(OFF),2.43 ± 0.89,2.39 ± 0.89,0.804,-,-,-
+UPDRS-III(OFF),33.12 ± 14.51,33.61 ± 14.03,0.602,-,-,-
+H-Y(ON),-,-,-,1.89 ± 0.71,1.97 ± 0.78,0.388
+UPDRS-III(ON),-,-,-,19.26 ± 9.42,26.90 ± 10.99,<0.001

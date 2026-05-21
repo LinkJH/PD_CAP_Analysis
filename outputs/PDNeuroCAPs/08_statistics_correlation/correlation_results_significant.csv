@@ -1,0 +1,3 @@
+Group,Analysis_Type,Imaging_Feature,Clinical_Target,N,Spearman_r,p_value,Metric_Group,p_FDR,Significant_FDR
+Non-responder,Longitudinal,Delta_transition_probability_2.5,Delta_UPDRS,93,-0.3457986139668735,0.0009028756721864209,transition_probability,0.04424090793713463,Yes
+Non-responder,Longitudinal,Delta_transition_probability_1.4,Delta_UPDRS,93,-0.3255004223304179,0.001854571925711307,transition_probability,0.045437012179927024,Yes
