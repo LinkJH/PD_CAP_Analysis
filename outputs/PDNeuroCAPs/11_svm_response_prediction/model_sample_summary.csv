@@ -1,5 +1,0 @@
-Model,N_subjects,N_responder,N_non_responder,Feature_Idxs,Features
-base,237,144,93,none,"UPDRS-III(OFF), Age, Gender, Years of Education"
-base_1,237,144,93,1,"UPDRS-III(OFF), Age, Gender, Years of Education, feature_1"
-base_2,237,144,93,2,"UPDRS-III(OFF), Age, Gender, Years of Education, feature_2"
-base_1_2,237,144,93,"1,2","UPDRS-III(OFF), Age, Gender, Years of Education, feature_1, feature_2"

@@ -3,27 +3,11 @@ import numpy as np
 from scipy.stats import mannwhitneyu, wilcoxon, fisher_exact
 import matplotlib.pyplot as plt
 import seaborn as sns
-import re
 import os
 
 clinical_path = 'data/merged_clinical_metrics.csv'
-qc_path = 'outputs/PDNeuroCAPs/01_extraction/qc_report.csv'
+subject_fd_path = 'outputs/clinical_statistics/Subject_FD.csv'
 output_path = 'outputs/clinical_statistics'
-
-def normalize_id(s):
-    """
-    Normalize Subject_ID for robust matching while preserving group prefixes.
-    """
-    if pd.isna(s): return ""
-    s = str(s).strip().lower()
-    
-    match = re.match(r'([a-z\-]*)0*(\d+)', s)
-    if match:
-        prefix = match.group(1).replace('-', '')
-        number = match.group(2)
-        return f"{prefix}{number}"
-    
-    return s
 
 def get_mean_sd(df, col):
     """Compute mean ± SD for continuous variables."""
@@ -81,20 +65,75 @@ def calc_p_paired(df, col_off, col_on):
         return np.nan
 
 def main():
-    if not os.path.exists(clinical_path) or not os.path.exists(qc_path):
+    if not os.path.exists(clinical_path) or not os.path.exists(subject_fd_path):
         print("Error: Data files not found. Please check the file paths!")
         return
 
-    df_clin = pd.read_csv(clinical_path)
-    df_qc = pd.read_csv(qc_path)
+    df_clin = pd.read_csv(clinical_path, dtype={'subject_id': 'string'})
+    df_subject_fd = pd.read_csv(
+        subject_fd_path, dtype={'subject_id': 'string'}
+    )
 
-    # Filter subjects based on QC
-    qc_ids = df_qc['Subject_ID'].astype(str).str.strip().unique()
-    qc_norm = [normalize_id(x) for x in qc_ids if normalize_id(x)]
-    
-    df_clin['norm_id'] = df_clin['subject_id'].apply(normalize_id)
-    df_valid = df_clin[df_clin['norm_id'].isin(qc_norm)].copy()
-    print(f"Read {len(df_clin)} clinical records, {len(qc_ids)} QC records, matched {len(df_valid)} records.")
+    required_qc_columns = {'subject_id', 'run', 'included'}
+    missing_qc_columns = required_qc_columns - set(df_subject_fd.columns)
+    if missing_qc_columns:
+        raise ValueError(
+            "Subject_FD.csv is missing required columns: "
+            + ", ".join(sorted(missing_qc_columns))
+        )
+
+    df_clin['subject_id'] = df_clin['subject_id'].str.strip()
+    df_subject_fd['subject_id'] = df_subject_fd['subject_id'].str.strip()
+    if df_clin['subject_id'].duplicated().any():
+        raise ValueError("Clinical file contains duplicate subject_id values.")
+    if df_subject_fd[['subject_id', 'run']].duplicated().any():
+        raise ValueError("Subject_FD.csv contains duplicate subject_id/run rows.")
+
+    clinical_ids = set(df_clin['subject_id'])
+    qc_ids = set(df_subject_fd['subject_id'])
+    missing_qc_ids = clinical_ids - qc_ids
+    unknown_qc_ids = qc_ids - clinical_ids
+    if missing_qc_ids or unknown_qc_ids:
+        details = []
+        if missing_qc_ids:
+            details.append(
+                "clinical IDs missing from Subject_FD.csv: "
+                + ", ".join(sorted(missing_qc_ids))
+            )
+        if unknown_qc_ids:
+            details.append(
+                "Subject_FD IDs absent from clinical data: "
+                + ", ".join(sorted(unknown_qc_ids))
+            )
+        raise ValueError("Clinical/Subject_FD ID mismatch; " + "; ".join(details))
+
+    included_normalized = df_subject_fd['included'].astype(str).str.strip().str.lower()
+    invalid_included = ~included_normalized.isin({'yes', 'no'})
+    if invalid_included.any():
+        invalid_values = sorted(df_subject_fd.loc[invalid_included, 'included'].astype(str).unique())
+        raise ValueError(
+            "Subject_FD.csv included column must contain only Yes or No. "
+            "Invalid values: " + ", ".join(invalid_values)
+        )
+    df_subject_fd['included_bool'] = included_normalized.eq('yes')
+
+    # A paired subject must have the same final inclusion status in run-1/run-2.
+    inclusion_status_count = df_subject_fd.groupby('subject_id')['included_bool'].nunique()
+    inconsistent_ids = inclusion_status_count[inclusion_status_count > 1].index.tolist()
+    if inconsistent_ids:
+        raise ValueError(
+            "Subject_FD.csv contains inconsistent inclusion status across runs: "
+            + ", ".join(inconsistent_ids)
+        )
+
+    included_ids = set(
+        df_subject_fd.loc[df_subject_fd['included_bool'], 'subject_id'].unique()
+    )
+    df_valid = df_clin[df_clin['subject_id'].isin(included_ids)].copy()
+    print(
+        f"Read {len(df_clin)} clinical records and retained "
+        f"{len(df_valid)} subjects after FD QC."
+    )
 
     # LEDD handling: flag zeros and treat them as missing
     if 'LEDD(mg)' in df_valid.columns:
@@ -107,17 +146,21 @@ def main():
     df_pd = df_valid[df_valid['Group'] == 'PD'].copy()
     df_hc = df_valid[df_valid['Group'] == 'HC'].copy()
 
-    # Select PD patients with ON data
-    df_pd['UPDRS-III(ON)_num'] = pd.to_numeric(df_pd['UPDRS-III(ON)'], errors='coerce')
-    df_offon = df_pd[df_pd['UPDRS-III(ON)_num'].notna()].copy()
+    # Select retained PD patients with ON data.
+    has_on_data = df_pd['H-Y(ON)'].notna() | df_pd['UPDRS-III(ON)'].notna()
+    df_offon = df_pd[has_on_data].copy()
 
-    # Responder split
-    updrs_off = pd.to_numeric(df_offon['UPDRS-III(OFF)'], errors='coerce')
-    updrs_on = pd.to_numeric(df_offon['UPDRS-III(ON)'], errors='coerce')
-    reduction = np.where(updrs_off == 0, 0, (updrs_off - updrs_on) / updrs_off)
-    resp_mask = reduction >= 0.30
-    df_resp = df_offon[resp_mask].copy()
-    df_non = df_offon[~resp_mask].copy()
+    # Use the clinical Responder column directly; do not recalculate it.
+    responder_numeric = pd.to_numeric(df_offon['Responder'], errors='coerce')
+    invalid_responder = responder_numeric.isna() | ~responder_numeric.isin([0, 1])
+    if invalid_responder.any():
+        invalid_ids = df_offon.loc[invalid_responder, 'subject_id'].tolist()
+        raise ValueError(
+            "Retained OFF/ON subjects must have Responder equal to 0 or 1: "
+            + ", ".join(invalid_ids)
+        )
+    df_resp = df_offon[responder_numeric.eq(1)].copy()
+    df_non = df_offon[responder_numeric.eq(0)].copy()
 
     # Plot LEDD raincloud: responders vs non-responders
     # Collect and clean valid data

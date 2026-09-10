@@ -105,7 +105,11 @@ def parse_transition_probability_rows(
             }
 
 
-def merge_files(input_dir: Path) -> list[dict[str, str]]:
+def merge_files(
+    input_dir: Path, output_path: Path | None = None
+) -> list[dict[str, str]]:
+    """Merge metric CSVs, write the long table, and return its rows."""
+    input_dir = Path(input_dir)
     metric_files = collect_metric_files(input_dir)
 
     missing = [m for m in METRIC_KEYWORDS.values() if m not in metric_files]
@@ -127,6 +131,13 @@ def merge_files(input_dir: Path) -> list[dict[str, str]]:
                 elif metric == "transition_probability":
                     merged_rows.extend(parse_transition_probability_rows(row, metric))
 
+    if output_path is None:
+        output_path = input_dir / "all_metrics_long.csv"
+    else:
+        output_path = Path(output_path)
+
+    write_output(merged_rows, output_path)
+    print(f"[OK] Wrote {len(merged_rows)} rows to {output_path}")
     return merged_rows
 
 
@@ -160,13 +171,11 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     try:
-        rows = merge_files(args.input_dir)
-        write_output(rows, args.output)
+        merge_files(args.input_dir, args.output)
     except Exception as exc:  # pragma: no cover - CLI error surface
         print(f"[ERROR] {exc}", file=sys.stderr)
         return 1
 
-    print(f"[OK] Wrote {len(rows)} rows to {args.output}")
     return 0
 
 

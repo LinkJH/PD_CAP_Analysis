@@ -1,4 +1,12 @@
-01_extraction/
-__pycache__/
-figurePlotScripts/
+/MyDataSet_Reorganized/
+/data/confound_rename/
+/outputs/PDNeuroCAPs/01_extraction/
 *.pkl
+figurePlotScripts/
+# figurePlotScripts/captions
+# figurePlotScripts/outputs
+
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/

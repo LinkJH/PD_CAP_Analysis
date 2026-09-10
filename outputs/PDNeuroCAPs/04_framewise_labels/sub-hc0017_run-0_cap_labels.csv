@@ -1,5 +1,5 @@
 Subject_ID,Run,Frame,CAP_Label
-hc0017,run-0,0,6
+hc0017,run-0,0,4
 hc0017,run-0,1,6
 hc0017,run-0,2,6
 hc0017,run-0,3,6
@@ -81,7 +81,7 @@ hc0017,run-0,78,4
 hc0017,run-0,79,4
 hc0017,run-0,80,4
 hc0017,run-0,81,7
-hc0017,run-0,82,1
+hc0017,run-0,82,2
 hc0017,run-0,83,1
 hc0017,run-0,84,1
 hc0017,run-0,85,1

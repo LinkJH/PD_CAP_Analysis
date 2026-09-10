@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from pathlib import Path
 
 def prepare_statistical_datasets(clinical_csv_path, metrics_csv_path, qc_csv_path, output_dir):
@@ -16,9 +15,9 @@ def prepare_statistical_datasets(clinical_csv_path, metrics_csv_path, qc_csv_pat
     out_dir.mkdir(parents=True, exist_ok=True)
     
     print("[INFO] Reading raw data...")
-    clinical_df = pd.read_csv(clinical_csv_path)
-    metrics_df = pd.read_csv(metrics_csv_path)
-    qc_df = pd.read_csv(qc_csv_path)
+    clinical_df = pd.read_csv(clinical_csv_path, dtype={'subject_id': 'string'})
+    metrics_df = pd.read_csv(metrics_csv_path, dtype={'Subject_ID': 'string'})
+    qc_df = pd.read_csv(qc_csv_path, dtype={'subject_id': 'string'})
     
     # ---------------------------------------------------------
     # 1. Normalize subject IDs
@@ -28,8 +27,31 @@ def prepare_statistical_datasets(clinical_csv_path, metrics_csv_path, qc_csv_pat
     metrics_df.rename(columns={'Subject_ID': 'subject_id'}, inplace=True)
     metrics_df['subject_id'] = metrics_df['subject_id'].astype(str).str.strip()
     
-    qc_df.rename(columns={'Subject_ID': 'subject_id'}, inplace=True)
+    qc_df.rename(
+        columns={
+            'Subject_ID': 'subject_id',
+            'run': 'Run',
+            'mean_FD': 'Mean_FD',
+        },
+        inplace=True,
+    )
     qc_df['subject_id'] = qc_df['subject_id'].astype(str).str.strip()
+
+    required_qc_columns = {'subject_id', 'Run', 'Mean_FD', 'included'}
+    missing_qc_columns = required_qc_columns - set(qc_df.columns)
+    if missing_qc_columns:
+        raise ValueError(
+            "QC file is missing required columns: "
+            + ", ".join(sorted(missing_qc_columns))
+        )
+
+    included_status = qc_df['included'].astype(str).str.strip().str.lower()
+    if not included_status.isin({'yes', 'no'}).all():
+        raise ValueError("QC column 'included' must contain only Yes or No.")
+    qc_df = qc_df[included_status.eq('yes')].copy()
+
+    if qc_df[['subject_id', 'Run']].duplicated().any():
+        raise ValueError("QC file contains duplicate subject_id/Run rows.")
     
     # ---------------------------------------------------------
     # 2. Pivot metrics from long to wide format
@@ -64,8 +86,13 @@ def prepare_statistical_datasets(clinical_csv_path, metrics_csv_path, qc_csv_pat
     # ---------------------------------------------------------
     print("[INFO] Merging metrics, QC, and clinical data...")
     # Merge metrics and QC
-    merged_df = pd.merge(metrics_wide, qc_df[['subject_id', 'Run', 'Mean_FD', 'Std_FD']], 
-                         on=['subject_id', 'Run'], how='left')
+    merged_df = pd.merge(
+        metrics_wide,
+        qc_df[['subject_id', 'Run', 'Mean_FD']],
+        on=['subject_id', 'Run'],
+        how='inner',
+        validate='one_to_one',
+    )
     
     # Merge clinical data
     merged_all = pd.merge(merged_df, clinical_df, on='subject_id', how='inner')
@@ -131,7 +158,7 @@ if __name__ == "__main__":
     # Configure local paths
     CLINICAL_CSV = "./data/clinical.csv"
     METRICS_CSV = "./data/metrics_long.csv"
-    QC_CSV = "./data/qc_report.csv"
+    QC_CSV = "./outputs/clinical_statistics/Subject_FD.csv"
     OUTPUT_DIR = "./data/processed_datasets"
     
     # Run only if paths exist

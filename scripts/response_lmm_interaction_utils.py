@@ -295,8 +295,8 @@ def run_response_lmm_interaction_pipeline(data_dir, output_dir, response_thresho
     print(f"[INFO] Clinical response defined (threshold: {response_threshold_pct}%): Responder={sum(df_long['Response_Group']=='Responder')}, Non-responder={sum(df_long['Response_Group']=='Non-responder')}")
 
     # Identify all numeric features with _OFF suffix
-    ignore_patterns = ['subject_id', 'ID', 'Group', 'Run', 'Gender', 'Age', 'Education', 
-                       'Mean_FD', 'Std_FD', 'Course', 'LEDD', 'H-Y', 'UPDRS', 'Responder', 'Condition']
+    ignore_patterns = ['subject_id', 'ID', 'Group', 'Run', 'Gender', 'Age', 'Education',
+                       'Mean_FD', 'Course', 'LEDD', 'H-Y', 'UPDRS', 'Responder', 'Condition']
                        
     long_off_cols = [c for c in df_long.columns if c.endswith('_OFF')]
     base_features = [

@@ -243,7 +243,7 @@ def run_statistical_pipeline(cross_csv, long_wide_csv, output_dir):
     df_long = pd.read_csv(long_wide_csv)
     
     # Include 'ID' and other potential header noise
-    ignore_patterns = ['subject_id', 'ID', 'Group', 'Run', 'Gender', 'Age', 'Education', 'Mean_FD', 'Std_FD', 
+    ignore_patterns = ['subject_id', 'ID', 'Group', 'Run', 'Gender', 'Age', 'Education', 'Mean_FD',
                        'Course', 'LEDD', 'H-Y', 'UPDRS', 'Responder', 'Condition']
     
     # Run cross-sectional ANCOVA

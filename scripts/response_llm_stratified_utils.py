@@ -348,8 +348,8 @@ def run_response_stratified_pipeline(data_dir, output_dir, response_threshold_pc
     
     df_long['Response_Group'] = np.where(pct_u >= response_threshold_pct, 'Responder', 'Non-responder')
 
-    ignore_patterns = ['subject_id', 'ID', 'Group', 'Run', 'Gender', 'Age', 'Education', 
-                       'Mean_FD', 'Std_FD', 'Course', 'LEDD', 'H-Y', 'UPDRS', 'Responder', 'Condition']
+    ignore_patterns = ['subject_id', 'ID', 'Group', 'Run', 'Gender', 'Age', 'Education',
+                       'Mean_FD', 'Course', 'LEDD', 'H-Y', 'UPDRS', 'Responder', 'Condition']
                        
     long_off_cols = [c for c in df_long.columns if c.endswith('_OFF')]
     base_features = [

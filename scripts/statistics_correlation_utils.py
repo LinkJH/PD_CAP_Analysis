@@ -123,8 +123,8 @@ def run_correlation_pipeline(data_dir, output_dir, response_threshold_pct=30.0):
     print("[INFO] Starting correlation analysis (Spearman Partial Correlation)...")
     all_results = []
     
-    ignore_patterns = ['subject_id', 'ID', 'Group', 'Run', 'Gender', 'Age', 'Education', 
-                       'Mean_FD', 'Std_FD', 'Course', 'LEDD', 'H-Y', 'UPDRS', 'Responder', 'Condition']
+    ignore_patterns = ['subject_id', 'ID', 'Group', 'Run', 'Gender', 'Age', 'Education',
+                       'Mean_FD', 'Course', 'LEDD', 'H-Y', 'UPDRS', 'Responder', 'Condition']
     
     # ---------------------------------------------------------
     # Cross-sectional analysis

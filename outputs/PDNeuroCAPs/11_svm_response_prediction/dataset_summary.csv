@@ -1,2 +1,0 @@
-n_subjects_total,n_responder,n_non_responder,off_run,feature_specs,resolved_feature_cols
-237,144,93,run-1,counts_CAP-2 | transition_probability_2.5,feature_1<-counts_CAP-2:: | feature_2<-transition_probability_2.5::
